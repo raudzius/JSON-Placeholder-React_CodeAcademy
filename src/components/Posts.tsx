@@ -1,72 +1,44 @@
-import { useEffect } from 'react';
-import { useState } from 'react';
+import PostI from './models/post';
+import { useRef, useState } from 'react';
 import Post from './Post';
 
-interface User {
-  id: number;
-  name: string;
-  username: string;
-  email: string;
-  address: {
-    street: string;
-    suite: string;
-    city: string;
-    zipcode: string;
-    geo: {
-      lat: string;
-      lng: string;
-    };
-  };
-  phone: string;
-  website: string;
-  company: {
-    name: string;
-    catchPhrase: string;
-    bs: string;
-  };
+interface PostsProps {
+  posts: PostI[];
 }
 
-interface PostInt {
-  userId: number;
-  id: number;
-  title: string;
-  body: string;
-  user: User;
-}
+export default function Posts({ posts }: PostsProps) {
+  const [limitedPosts, setLimitedPosts] = useState(limitPosts(25, posts));
+  const selectRef = useRef<HTMLSelectElement>(null);
 
-export default function Posts() {
-  const [posts, setPosts] = useState<PostInt[]>([]);
+  function limitPosts(limit: number, posts: PostI[]) {
+    const limitedPosts: JSX.Element[] = [];
+    for (let i = 0; i < limit; i++) {
+      const post = (
+        <Post
+          key={posts[i].id}
+          title={posts[i].title}
+          body={posts[i].body}
+          name={posts[i].user.name}
+        />
+      );
+      limitedPosts.push(post);
+    }
+    return limitedPosts;
+  }
 
-  useEffect(() => {
-    fetch('https://jsonplaceholder.typicode.com/posts?_expand=user&_limit=25')
-      .then(res => res.json())
-      .then((posts: PostInt[]) => {
-        setPosts(posts);
-      });
-  });
-
-  function paginate(limit: number, posts: PostInt[]) {
-    for (let i = 0; i < posts.length; i += limit) {}
+  function handleSelect() {
+    setLimitedPosts(limitPosts(+selectRef.current!.value, posts));
   }
 
   return (
     <div>
-      <ul>
-        {posts.map((post: PostInt) => (
-          <Post
-            title={post.title}
-            body={post.body}
-            name={post.user.name}
-            key={post.id}
-          />
-        ))}
-      </ul>
-      <div>
-        <a href="">1</a>
-        <a href="">2</a>
-        <a href="">3</a>
-        <a href="">4</a>
-      </div>
+      <select name='posts' id='posts' onClick={handleSelect} ref={selectRef}>
+        <option>10</option>
+        <option>25</option>
+        <option>50</option>
+        <option>100</option>
+      </select>
+      <ul>{limitedPosts}</ul>
     </div>
   );
 }
