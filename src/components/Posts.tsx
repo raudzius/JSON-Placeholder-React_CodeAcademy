@@ -1,44 +1,54 @@
-import PostI from './models/post';
-import { useRef, useState } from 'react';
-import Post from './Post';
+import { useState, useEffect } from 'react';
+import PostInterface from './models/PostInterface';
+import PaginationLinks from './pagination/PaginationLinks';
+import PaginationPosts from './pagination/PaginationPosts';
+import PaginationSelection from './pagination/PaginationSelection';
 
-interface PostsProps {
-  posts: PostI[];
-}
+export default function Posts() {
+  const [allPosts, setAllPosts] = useState<PostInterface[]>([]);
+  const [posts, setPosts] = useState<PostInterface[]>([]);
+  const [numOfPages, setNumOfPages] = useState<number>(4);
+  const [limit, setLimit] = useState<number>(25);
+  const [start, setStart] = useState<number>(0);
 
-export default function Posts({ posts }: PostsProps) {
-  const [limitedPosts, setLimitedPosts] = useState(limitPosts(25, posts));
-  const selectRef = useRef<HTMLSelectElement>(null);
-
-  function limitPosts(limit: number, posts: PostI[]) {
-    const limitedPosts: JSX.Element[] = [];
-    for (let i = 0; i < limit; i++) {
-      const post = (
-        <Post
-          key={posts[i].id}
-          title={posts[i].title}
-          body={posts[i].body}
-          name={posts[i].user.name}
-        />
-      );
-      limitedPosts.push(post);
-    }
-    return limitedPosts;
+  function paginatePosts(limit: number) {
+    setNumOfPages(Math.ceil(allPosts.length / limit));
+    setLimit(limit);
   }
 
-  function handleSelect() {
-    setLimitedPosts(limitPosts(+selectRef.current!.value, posts));
+  function switchPosts(page: number) {
+    fetchAllPosts();
+    setStart(limit * (page - 1));
   }
+
+  async function fetchAllPosts() {
+    const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+    const fetchedPosts = await res.json();
+    setAllPosts(fetchedPosts);
+  }
+
+  useEffect(() => {
+    fetchAllPosts();
+  }, []);
+
+  async function fetchPosts() {
+    const limitParam: string = ``;
+    const res = await fetch(
+      `https://jsonplaceholder.typicode.com/posts?_expand=user&_start=${start}&_limit=${limit}`
+    );
+    const fetchedPosts = await res.json();
+    setPosts(fetchedPosts);
+  }
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   return (
     <div>
-      <select name='posts' id='posts' onClick={handleSelect} ref={selectRef}>
-        <option>10</option>
-        <option>25</option>
-        <option>50</option>
-        <option>100</option>
-      </select>
-      <ul>{limitedPosts}</ul>
+      <PaginationSelection paginatePosts={paginatePosts} />
+      <PaginationPosts posts={posts} />
+      <PaginationLinks numOfPages={numOfPages} switchPosts={switchPosts} />
     </div>
   );
 }
